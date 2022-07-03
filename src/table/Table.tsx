@@ -1,20 +1,26 @@
-import { PropsWithChildren } from "react";
+import { PropsWithChildren, ReactNode } from "react";
 import { Cell } from "./Cell";
 import { Row } from "./Row";
 import { Header } from "./Header";
 import { RowGroup } from "./RowGroup";
 import { IColumn, ITable } from "./type";
 
-function countColMem(nodes: IColumn[]): [any[], number] {
+type TNodeByLevel<TNode> = {
+	level: number;
+	nodeCount: number;
+	nodes: TNode[];
+};
+
+function countColMem<N>(nodes: N[]): [TNodeByLevel<N>[], number] {
 	if (nodes.length === 0) {
 		return [{} as any, 0];
 	}
 
-	let q: IColumn[] = [];
+	let q: N[] = [];
 	let count = 0;
 
 	let start = 0;
-	let pos: any[] = [];
+	let pos: TNodeByLevel<N>[] = [];
 
 	q.push(...nodes);
 
@@ -28,10 +34,10 @@ function countColMem(nodes: IColumn[]): [any[], number] {
 			return [pos, count];
 		}
 		start++;
-		pos.push({ level: start, count: nodeCount, nodes: [...q] });
+		pos.push({ level: start, nodeCount, nodes: [...q] });
 
 		while (nodeCount > 0) {
-			let node = q.shift(); // remove first node
+			let node = q.shift() as { children?: N[] }; // remove first node
 
 			if (node?.children) {
 				q.push(...node.children);
@@ -44,28 +50,29 @@ function countColMem(nodes: IColumn[]): [any[], number] {
 	}
 }
 
-function renderDefaultHeader(columns: IColumn[]) {
-	let [levels, maxRow] = countColMem(columns);
+function renderDefaultHeader<T>(columns: IColumn<T>[]) {
+	let [levels, maxRow] = countColMem(columns); //* run on first render of header to get all rows
 
 	let rowSpan = maxRow;
-	console.log(levels);
 
 	return levels.map((level, rowidx) => (
 		<tr key={rowidx}>
-			{level.nodes.map((node: IColumn, colidx: number) => {
-				if (node.children) {
-					let [child, maxCol] = countColMem(node?.children || []);
+			{level.nodes.map((node, colidx) => {
+				let col = node as IColumn<T>;
 
-					let lastChild = child.slice(-1)[0]
-					console.log({ name: node.name, maxChild: lastChild, maxCol });
+				if (col.children) {
+					//* run on each row to get each column colSpan by its last child
+					let [child, _] = countColMem(node.children || []);
+
+					let lastChild = child.slice(-1)[0];
 					return (
 						<th
 							key={colidx}
-							rowSpan={node.children ? 1 : rowSpan - rowidx}
-							colSpan={lastChild.count || 1}
+							rowSpan={col.children ? 1 : rowSpan - rowidx}
+							colSpan={lastChild.nodeCount || 1}
 							className="header"
 						>
-							{node.name}
+							{col.name}
 						</th>
 					);
 				}
@@ -76,7 +83,7 @@ function renderDefaultHeader(columns: IColumn[]) {
 						colSpan={1}
 						className="header"
 					>
-						{node.name}
+						{col.name}
 					</th>
 				);
 			})}
@@ -84,12 +91,37 @@ function renderDefaultHeader(columns: IColumn[]) {
 	));
 }
 
-const Table = function <TData = Record<string, any>>({
+function renderDataRow<T extends { [K in keyof T]: T[K] }>(
+	row: T,
+	columns: IColumn<T>[]
+): any {
+	return columns.map((col, colidx) => {
+		if (col.children) {
+			let value = row[col.dataField];
+			return renderDataRow(value, col.children);
+		}
+		let value = row[col.dataField] as unknown as ReactNode;
+		// console.info(col.dataField, value);
+		return (
+			<Cell key={colidx} className={col.className}>
+				<div
+					className={`w-full h-full flex items-start text-${
+						col.align || "center"
+					}`}
+				>
+					<span className={`px-2 py-1 flex-auto`}>{value}</span>
+				</div>
+			</Cell>
+		);
+	});
+}
+
+const Table = function <T extends {}>({
 	children,
 	className,
-	data = [],
+	data,
 	...props
-}: PropsWithChildren<ITable<TData>>) {
+}: PropsWithChildren<ITable<T>>) {
 	console.log("rendering table");
 
 	let { columns, keyField, ...rest } = props;
@@ -102,9 +134,7 @@ const Table = function <TData = Record<string, any>>({
 				{Array.isArray(data)
 					? data.map((row, rowIdx) => (
 							<RowGroup.Row key={rowIdx}>
-								{columns.map((col, colidx) => (
-									<Cell key={colidx}>{row[col.dataField]}</Cell>
-								))}
+								{renderDataRow(row, columns)}
 							</RowGroup.Row>
 					  ))
 					: null}

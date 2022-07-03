@@ -1,81 +1,80 @@
 import "./App.css";
 import { IColumn, Table } from "./table";
+import data from "./data";
+
+type TData = typeof data[number];
 
 function App() {
-	type NewType = IColumn<any>;
-
-	const columns: NewType[] = [
+	const columns: IColumn<TData>[] = [
 		{
-			dataField: "name",
+			dataField: "productName",
 			name: "Name Product",
+			className: "w-64",
 		},
 		{
-			dataField: "name",
+			dataField: "startValue",
 			name: "Start Value",
 			children: [
 				{
-					dataField: "startValue",
+					dataField: "amount",
 					name: "Start Value",
 				},
 				{
-					dataField: "startValue",
+					dataField: "value",
 					name: "Start amount",
 				},
 			],
 		},
 		{
-			dataField: "name",
+			dataField: "importValue",
 			name: "import value",
-			isGroup: true,
 			children: [
 				{
-					dataField: "name",
+					dataField: "amount",
 					name: "import",
 				},
 				{
-					dataField: "name",
+					dataField: "value",
 					name: "import",
 				},
 			],
 		},
 		{
-			dataField: "name",
+			dataField: "exportValue",
 			name: "export value",
-			isGroup: true,
 			children: [
 				{
-					dataField: "name",
+					dataField: "amount",
 					name: "export",
 				},
 				{
-					dataField: "name",
+					dataField: "value",
 					name: "export",
 				},
 			],
 		},
 		{
-			dataField: "name",
+			dataField: "endValue",
 			name: "end value",
-			isGroup: true,
 			children: [
 				{
-					dataField: "name",
+					dataField: "realValue",
 					name: "real end",
 					children: [
-						{ dataField: "name", name: "real end" },
-						{ dataField: "name", name: "real end" },
+						{ dataField: "amount", name: "real end" },
+						{ dataField: "value", name: "real end" },
 					],
 				},
 				{
-					dataField: "name",
+					dataField: "calculateValue",
 					name: "expected end",
 					children: [
 						{
-							dataField: "name",
+							dataField: "amount",
 							name: "expected end",
 						},
 						{
-							dataField: "name",
+							dataField: "value",
 							name: "expected end",
 						},
 					],
@@ -109,7 +108,7 @@ function App() {
 
 						<div className="w-full p-0">
 							{/* table */}
-							<Table columns={columns} data={[]} />
+							<Table columns={columns} data={data} />
 						</div>
 					</div>
 				</div>
